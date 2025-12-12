@@ -82,14 +82,14 @@ curl -X POST http://localhost:7000/tools/task-db.create_task \
 ### Diagram
 ```mermaid
 flowchart TD
-    UI[UI (Streamlit)\n:8501]
-    ORCH[Orchestrator (FastAPI)\n:8000]
-    MCP[MCP Server (FastAPI)\n:7000]
-    KEYS[keys/jwt.pub\n(JWT public key)]
-    PG[(Postgres\n:5444->5432)]
-    ML[ML Service\n:8002->8000\nDelay risk scoring]
-    NOTIF[Notification Service\n:8003->8000]
-    LLM[LLM Service (Ollama)\n:11434\n(optional)]
+    UI[UI (Streamlit)<br/>:8501]
+    ORCH[Orchestrator (FastAPI)<br/>:8000]
+    MCP[MCP Server (FastAPI)<br/>:7000]
+    KEYS[keys/jwt.pub<br/>(JWT public key)]
+    PG[(Postgres<br/>:5444->5432)]
+    ML[ML Service<br/>:8002->8000<br/>Delay risk scoring]
+    NOTIF[Notification Service<br/>:8003->8000]
+    LLM[LLM Service (Ollama)<br/>:11434<br/>(optional)]
 
     UI --> ORCH --> MCP
     MCP -->|reads| KEYS
