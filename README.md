@@ -78,3 +78,23 @@ curl -X POST http://localhost:7000/tools/task-db.create_task \
        |
        \--> [LLM Service (Ollama, :11434)]  optional for extraction/summaries
 ```
+
+### Diagram
+```mermaid
+flowchart TD
+    UI[UI (Streamlit, :8501)]
+    ORCH[Orchestrator (FastAPI, :8000)]
+    MCP[MCP Server (FastAPI, :7000)]
+    KEYS[keys/jwt.pub\n(JWT public key)]
+    PG[(Postgres\n:5444->5432)]
+    ML[ML Service\n:8002->8000\nDelay risk scoring]
+    NOTIF[Notification Service\n:8003->8000]
+    LLM[LLM Service (Ollama)\n:11434 optional]
+
+    UI --> ORCH --> MCP
+    MCP -->|reads| KEYS
+    MCP --> PG
+    MCP --> ML
+    MCP --> NOTIF
+    MCP -->|optional| LLM
+```
