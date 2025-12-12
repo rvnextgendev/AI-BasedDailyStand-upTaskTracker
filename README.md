@@ -3,6 +3,12 @@
 ## Developer key generation (local)
 Generate a throwaway RSA pair and JWT for local testing so the services can verify requests.
 
+0) Install local Python deps for the scripts (includes cryptography for the Python keygen path):  
+```
+pip install -r requirements.txt
+```
+If you prefer OpenSSL for key generation on Windows, install it (e.g., `winget install ShiningLight.OpenSSL.Light`).
+
 1) Create RSA keys (requires OpenSSL):
 ```
 openssl genrsa -out keys/dev-jwt.key 2048
