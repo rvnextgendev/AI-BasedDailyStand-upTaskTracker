@@ -42,6 +42,11 @@ Copy/paste into the UI “stand-up update” box:
 - ScrumMaster: `Yesterday: Facilitated sprint planning and confirmed scope with stakeholders. Today: Tracking progress on API integration and front-end handoff. Blockers: Pending UAT slot for demo environment.`
 - Admin: `Yesterday: Reviewed access logs and rotated API keys. Today: Auditing permissions for new project members. Blockers: Need approval to provision additional monitoring alerts.`
 
+Role-specific stand-up examples (copy/paste):
+- Developer — What I did: “Finished API endpoint for task creation and wrote unit tests.” What I’m doing: “Integrating front-end form with the new endpoint.” Blockers: “Waiting on QA env credentials.”
+- ScrumMaster — What I did: “Facilitated sprint planning, confirmed scope with stakeholders.” What I’m doing: “Tracking progress on API integration and front-end handoff.” Blockers: “Pending UAT slot for demo environment.”
+- Admin — What I did: “Reviewed access logs and rotated API keys.” What I’m doing: “Auditing permissions for new project members.” Blockers: “Need approval to provision additional monitoring alerts.”
+
 ## End-to-end steps to save data
 1) Start the stack (from repo root): `docker compose up -d`. Ensure containers `mcp-server`, `orchestrator-service`, `ui-service`, and `standup-postgres` are running.
 2) Generate a token (example: Developer): `python scripts/generate_jwt.py --sub developer-1 --role Developer --name "Developer User" --key keys/dev-jwt.key --hours 24`.
@@ -53,4 +58,23 @@ curl -X POST http://localhost:7000/tools/task-db.create_task \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{"args":{"description":"test","delay_risk":"LOW"}}'
+```
+
+## Architecture (local stack)
+```
+[UI (Streamlit, :8501)]
+       |
+       v
+[Orchestrator (FastAPI, :8000)]
+       |  calls MCP tools with Bearer token
+       v
+[MCP Server (FastAPI, :7000)] --reads--> [keys/jwt.pub]
+       | \
+       |  \---> [Postgres (:5444->5432)]  <-- tasks, standups, users
+       |  \
+       |   \-> [ML Service (:8002->8000)]  delay risk
+       |    \
+       |     \-> [Notification Service (:8003->8000)]
+       |
+       \--> [LLM Service (Ollama, :11434)]  optional for extraction/summaries
 ```

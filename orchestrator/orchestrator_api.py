@@ -52,6 +52,32 @@ def call_mcp(tool: str, args: dict, token: str):
         return None
 
 
+def parse_standup_sections(text: str) -> dict:
+    """Lightweight parser for 'What I did / I'm doing / Blockers' sections."""
+    sections = {"yesterday": "", "today": "", "blockers": ""}
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    current = None
+    for ln in lines:
+        low = ln.lower()
+        if low.startswith("what i did:") or low.startswith("yesterday:"):
+            current = "yesterday"
+            sections[current] = ln.split(":", 1)[1].strip() if ":" in ln else ""
+            continue
+        if low.startswith("what i’m doing:") or low.startswith("what i'm doing:") or low.startswith("today:"):
+            current = "today"
+            sections[current] = ln.split(":", 1)[1].strip() if ":" in ln else ""
+            continue
+        if low.startswith("blockers:"):
+            current = "blockers"
+            sections[current] = ln.split(":", 1)[1].strip() if ":" in ln else ""
+            continue
+        if current:
+            sections[current] = (sections[current] + " " + ln).strip()
+    if not any(sections.values()):
+        sections["today"] = text.strip()
+    return sections
+
+
 @app.post("/agent/standup")
 def run_standup(data: StandupInput):
     # Extract tasks via LLM if available
@@ -87,6 +113,17 @@ def run_standup(data: StandupInput):
                 {"description": each["task"], "delay_risk": each["delay_risk"]},
                 token=data.token,
             )
+        # Also save structured standup content
+        sections = parse_standup_sections(data.message)
+        call_mcp(
+            "standup.save",
+            {
+                "yesterday": sections["yesterday"],
+                "today": sections["today"],
+                "blockers": sections["blockers"],
+            },
+            token=data.token,
+        )
 
     summary_prompt = f"Summarize tasks and risks for scrum master: {risks}"
     summary = call_llm(summary_prompt)
