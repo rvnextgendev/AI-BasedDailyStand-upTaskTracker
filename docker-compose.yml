@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: standup-postgres
+    environment:
+      POSTGRES_DB: standupdb
+      POSTGRES_USER: standupuser
+      POSTGRES_PASSWORD: standuppass
+    ports:
+      - "5444:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  llm-service:
+    image: ollama/ollama:latest
+    container_name: llm-service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    command: ["serve"]
+
+  ml-service:
+    build: ./ml_service
+    container_name: ml-service
+    depends_on:
+      - postgres
+    ports:
+      - "8002:8000"
+
+  notification-service:
+    build: ./notification_service
+    container_name: notification-service
+    ports:
+      - "8003:8000"
+
+  mcp-server:
+    build: ./mcp_server
+    container_name: mcp-server
+    depends_on:
+      - postgres
+      - ml-service
+      - notification-service
+    environment:
+      DB_HOST: postgres
+      DB_NAME: standupdb
+      DB_USER: standupuser
+      DB_PASS: standuppass
+      ML_URL: http://ml-service:8000
+      NOTIFY_URL: http://notification-service:8000
+      LLM_PROVIDER: LOCAL
+      ML_PROVIDER: LOCAL
+      OLLAMA_URL: http://llm-service:11434
+      OLLAMA_MODEL: llama3
+      JWT_ALGORITHM: RS256
+      JWT_PUBLIC_KEY_PATH: /keys/jwt.pub
+    volumes:
+      - ./keys:/keys:ro
+    ports:
+      - "7000:7000"
+
+  orchestrator-service:
+    build: ./orchestrator
+    container_name: orchestrator-service
+    depends_on:
+      - llm-service
+      - ml-service
+      - mcp-server
+      - postgres
+      - notification-service
+    environment:
+      DB_HOST: postgres
+      DB_NAME: standupdb
+      DB_USER: standupuser
+      DB_PASS: standuppass
+      OLLAMA_URL: http://llm-service:11434
+      ML_URL: http://ml-service:8000
+      MCP_URL: http://mcp-server:7000
+    ports:
+      - "8001:8000"
+
+  ui-service:
+    build: ./ui
+    container_name: ui-service
+    depends_on:
+      - orchestrator-service
+    environment:
+      ORCH_URL: http://orchestrator-service:8000/agent/standup
+    ports:
+      - "8501:8501"
+
+volumes:
+  ollama-data:
