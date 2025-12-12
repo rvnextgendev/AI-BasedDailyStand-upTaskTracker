@@ -7,7 +7,13 @@ ORCH_URL = os.getenv("ORCH_URL", "http://orchestrator-service:8000/agent/standup
 st.set_page_config(page_title="AI Daily Stand-up Assistant", page_icon="🤖", layout="wide")
 st.title("🤖 AI Daily Stand-up Assistant")
 
-token = st.text_input("Bearer token", type="password")
+st.caption(
+    "Developer token hint: run "
+    "`python scripts/generate_jwt.py --sub developer-1 --role Developer --name \"Developer User\" --key keys/dev-jwt.key --hours 24` "
+    "and paste the output JWT below."
+)
+
+token = st.text_input("Bearer token", type="password", placeholder="Paste JWT here")
 user_id = st.number_input("User ID", min_value=1, value=1)
 message = st.text_area("Enter your stand-up update", height=200)
 
