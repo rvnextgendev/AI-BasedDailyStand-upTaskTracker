@@ -14,6 +14,9 @@ class StandupInput(BaseModel):
     user_id: int
     message: str
     token: str | None = None  # bearer token to pass to MCP
+    notify_to: str | None = None  # email/phone/whatsapp destination
+    notify_channel: str | None = "email"  # email or whatsapp
+    notify_subject: str | None = "Standup Summary"
 
 
 @app.get("/health")
@@ -134,4 +137,17 @@ def run_standup(data: StandupInput):
         else:
             summary = "No tasks extracted."
 
-    return {"tasks": risks, "summary": summary}
+    notify_result: dict | None = None
+    if data.notify_to:
+        if not data.token:
+            notify_result = {"status": "skipped", "reason": "token required for notification tool"}
+        else:
+            notify_payload = {
+                "to": data.notify_to,
+                "channel": data.notify_channel or "email",
+                "subject": data.notify_subject or "Standup Summary",
+                "message": summary,
+            }
+            notify_result = call_mcp("notification.send", notify_payload, token=data.token)
+
+    return {"tasks": risks, "summary": summary, "notification": notify_result}
